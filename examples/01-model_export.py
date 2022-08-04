@@ -32,6 +32,10 @@ class DLRMModelExportFlow(FlowSpec):
 
     @step
     def start(self):
+        """
+        Initializes the flow by ensuring that DATA_FOLDER exists, then kicks off the next two tasks
+        in parallel: producing the training data, and defining the NVTabular workflow
+        """
         print(f"Ensuring that the DATA_FOLDER {self.DATA_FOLDER} exists")
         if not Path(self.DATA_FOLDER).exists():
             Path(self.DATA_FOLDER).mkdir(parents=True, exist_ok=True)
@@ -39,6 +43,10 @@ class DLRMModelExportFlow(FlowSpec):
 
     @step
     def download_and_save_data(self):
+        """
+        This step downloads (in this case, synthesizes) the data to be used for the model and
+        stores the train and validation splits.
+        """
         self.train_data = Path(self.DATA_FOLDER) / "train"
         self.valid_data = Path(self.DATA_FOLDER) / "valid"
         if not (
@@ -61,14 +69,18 @@ class DLRMModelExportFlow(FlowSpec):
     @step
     def generate_transform_workflow(self):
         """
-        Fetch the parquet files created in download_and_save_data and create an nvt workflow
-        from them.
+        This step generates an NVTabular workflow for feature engineering. It does not actually
+        fit the workflow to data yet.
+
+        Separating the workflow definition from fitting will allow us to re-fit the same workflow
+        artifact on new daily partitions of data.
         """
         self.nvt_workflow_definition_path = os.path.join(
             self.DATA_FOLDER, "nvt_workflow_definition"
         )
 
-        # clear out the existing workflow data.
+        # clear out the existing workflow definition.
+        # TODO: this path should be paramaterized with a version rather than re-writing every time
         if os.path.exists(self.nvt_workflow_definition_path):
             shutil.rmtree(self.nvt_workflow_definition_path)
 
@@ -118,6 +130,12 @@ class DLRMModelExportFlow(FlowSpec):
 
     @step
     def transform_data(self, inputs):
+        """
+        This step takes the NVTabular workflow and fits it to the training data.
+
+        It then applies that fit workflow to both the training and validation data and stores those
+        datasets for training in the next step.
+        """
         self.nvt_workflow_path: Path = Path(self.DATA_FOLDER) / "nvt_workflow"
         processed_data_path: Path = Path(self.DATA_FOLDER) / "processed"
         self.processed_train_data = str(processed_data_path / "train")
@@ -153,6 +171,9 @@ class DLRMModelExportFlow(FlowSpec):
 
     @step
     def train_dlrm(self):
+        """
+        This step trains a DLRM model using the train/valid data splits from the previous step.
+        """
         self.model_output_path = os.path.join(self.DATA_FOLDER, "models", "dlrm")
 
         # Remove any already-stored models
@@ -182,6 +203,9 @@ class DLRMModelExportFlow(FlowSpec):
 
     @step
     def end(self):
+        """
+        Congratulations, it's done. This step will simply print the output path.
+        """
         print(f">>> DLRM model exported to {self.model_output_path}")
         pass
 
