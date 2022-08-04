@@ -11,4 +11,4 @@ The steps expressed are:
 Some self-enforced rules are:
 
 * All entities (workflows, models, etc) must be serialized to disk between steps
-* 
+* Run steps in parallel when possible
