@@ -1,15 +1,93 @@
 import os
 import shutil
 from metaflow import FlowSpec, Parameter, step
-from merlin.schema import Tags
+from merlin.schema import Tags, Schema
 
+from typing import Optional
 from nvtabular.workflow import Workflow
 
 from merlin.systems.dag.ops.workflow import TransformWorkflow
 from merlin.systems.dag.ops.tensorflow import PredictTensorflow
 from merlin.systems.dag.ensemble import Ensemble
 
+from merlin.systems.dag.ops.operator import (
+    InferenceDataFrame,
+    PipelineableInferenceOperator,
+)
+
 default_data_path = os.path.expanduser("~/data/alicpp")
+
+
+class CustomOp(PipelineableInferenceOperator):
+    def export(
+        self,
+        path: str,
+        input_schema: Schema,
+        output_schema: Schema,
+        params: Optional[dict] = None,
+        node_id: Optional[int] = None,
+        version: int = 1,
+    ):
+        """
+        Export the class object as a config and all related files to the user defined path.
+
+        Parameters
+        ----------
+        path : str
+            Artifact export path
+        input_schema : Schema
+            A schema with information about the inputs to this operator.
+        output_schema : Schema
+            A schema with information about the outputs of this operator.
+        params : dict, optional
+            Parameters dictionary of key, value pairs stored in exported config, by default None.
+        node_id : int, optional
+            The placement of the node in the graph (starts at 1), by default None.
+        version : int, optional
+            The version of the model, by default 1.
+
+        Returns
+        -------
+        Ensemble_config: dict
+            The config for the entire ensemble.
+        Node_configs: list
+            A list of individual configs for each step (operator) in graph.
+        """
+        ...
+
+    def from_config(cls, config: dict, **kwargs):
+        """
+        Instantiate a class object given a config.
+
+        Parameters
+        ----------
+        config : dict
+        **kwargs
+          contains the following:
+            * model_repository: Model repository path
+            * model_version: Model version
+            * model_name: Model name
+
+        Returns
+        -------
+            Class object instantiated with config values
+        """
+        ...
+
+    def transform(self, df: InferenceDataFrame) -> InferenceDataFrame:
+        """Transform the dataframe by applying this operator to the set of input columns
+
+        Parameters
+        -----------
+        df: Dataframe
+            A pandas or cudf dataframe that this operator will work on
+
+        Returns
+        -------
+        DataFrame
+            Returns a transformed dataframe for this operator
+        """
+        ...
 
 
 class SystemWorkflow(FlowSpec):
@@ -40,8 +118,8 @@ class SystemWorkflow(FlowSpec):
         TODO: replace this with a versioned path rather than overwriting.
         """
 
-        if os.path.exists(self.ensemble_output_path):
-            shutil.rmtree(self.ensemble_output_path)
+        if os.path.exists(self.ensemble_output_path):  # type:ignore
+            shutil.rmtree(self.ensemble_output_path)  # type:ignore
 
         self.next(self.generate_ensemble)
 
@@ -73,6 +151,10 @@ class SystemWorkflow(FlowSpec):
 
         ensemble.export(self.ensemble_output_path)
         self.next(self.end)
+
+    @step
+    def add_custom_op(self):
+        pass
 
     @step
     def end(self):
