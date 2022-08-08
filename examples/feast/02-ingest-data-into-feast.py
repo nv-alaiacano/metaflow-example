@@ -22,6 +22,7 @@ class MaterializeFeastForDemo(FlowSpec):
         "feature-store-path",
         help="Path to the local feature store to be materialized.",
         type=str,
+        default="feast_feature_store",
     )
 
     TEARDOWN = Parameter(

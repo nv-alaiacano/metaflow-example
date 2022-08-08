@@ -3,11 +3,25 @@ import os
 import nvtabular as nvt
 from pathlib import Path
 from metaflow import FlowSpec, Parameter, step
-from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
 from merlin.schema import Tags
 import merlin.models.tf as mm
 import tensorflow as tf
+
+item_feature_names = ["item_category", "item_shop", "item_brand"]
+user_feature_names = [
+    "user_shops",
+    "user_profile",
+    "user_group",
+    "user_gender",
+    "user_age",
+    "user_consumption_2",
+    "user_is_occupied",
+    "user_geography",
+    "user_intentions",
+    "user_brands",
+    "user_categories",
+]
 
 
 class DLRMModelExportFlow(FlowSpec):
@@ -15,10 +29,10 @@ class DLRMModelExportFlow(FlowSpec):
     DATA_FOLDER = Parameter(
         "data-folder",
         help="Folder where we will download/cache data and use it in later steps.",
-        default=os.path.expanduser("~/data/alicpp"),
+        default=os.path.join(os.getcwd(), "data_for_modeling"),
     )
 
-    FEATURE_STORE_FOLDER = Parameter(
+    FEATURE_STORE_PATH = Parameter(
         "feature-store-path", default=os.path.join(os.getcwd(), "feast_feature_store")
     )
 
@@ -29,14 +43,6 @@ class DLRMModelExportFlow(FlowSpec):
         default=os.path.join(
             os.getcwd(), "feast_feature_store", "data", "context_features.parquet"
         ),
-    )
-
-    NUM_ROWS = Parameter(
-        "num-rows", help="Number of rows to generate", default=1_000_000, type=int
-    )
-
-    SYNTHETIC_DATA = Parameter(
-        "synthetic-data", help="Use/generate synthetic data", default=True, type=bool
     )
 
     BATCH_SIZE = Parameter(
@@ -57,15 +63,15 @@ class DLRMModelExportFlow(FlowSpec):
     @step
     def load_user_item_interactions(self):
         """
-        Given a list of user/item interactions, we fetch the associated features for the
-        interactions from Feast.
+        This loads a DataFrame of user/item interactions. We will split these into test/valid sets
+        and fetch the appropriate features from Feast to generate training sets.
         """
-        interactions_df = Dataset(self.INTERACTIONS_FILE)
-        interactions_df = interactions_df.to_ddf().compute()
+        interactions_df = Dataset(self.INTERACTIONS_FILE).to_ddf().compute()
 
-        # interactions_df.rename(columns={"datetime": "event_timestamp"}, inplace=True)
-
+        # The event timestamps in interactions_df are randomized, so this is producing a random
+        # 70/30 split.
         test_split_index = int(interactions_df.shape[0] * 0.7)
+
         self.train_interactions_df = interactions_df[:test_split_index]
         self.valid_interactions_df = interactions_df[test_split_index:]
         self.next(self.fetch_historical_data_from_feast)
@@ -77,26 +83,39 @@ class DLRMModelExportFlow(FlowSpec):
         """
         import feast
 
-        fs = feast.FeatureStore(self.FEATURE_STORE_FOLDER)
+        fs = feast.FeatureStore(self.FEATURE_STORE_PATH)
 
-        all_features_to_fetch = []
-        for view in fs.list_feature_views():
-            for feature in view.features:
-                all_features_to_fetch.append(f"{view.name}:{feature.name}")
+        all_features_to_fetch = [f"user_features:{f}" for f in user_feature_names] + [
+            f"item_features:{f}" for f in item_feature_names
+        ]
 
-        train_output_path = os.path.join(self.DATA_FOLDER, "train", "train.parquet")
-        valid_output_path = os.path.join(self.DATA_FOLDER, "valid", "valid.parquet")
-        for p in [train_output_path, valid_output_path]:
+        self.raw_training_data_path = os.path.join(
+            self.DATA_FOLDER, "train_raw.parquet"
+        )
+        self.raw_validation_data_path = os.path.join(
+            self.DATA_FOLDER, "valid_raw.parquet"
+        )
+
+        for p in [self.raw_training_data_path, self.raw_validation_data_path]:
             if os.path.exists(p):
-                shutil.rmtree(p)
+                if os.path.isdir(p):
+                    shutil.rmtree(p)
+                else:
+                    os.remove(p)
+
+        # Fetch the train/valid data from Feast and save to the appropriate path.
 
         fs.get_historical_features(
             self.train_interactions_df, all_features_to_fetch
-        ).to_df().to_parquet(train_output_path)
+        ).to_df().drop(columns=["created__", "event_timestamp"]).to_parquet(
+            self.raw_validation_data_path
+        )
 
         fs.get_historical_features(
             self.valid_interactions_df, all_features_to_fetch
-        ).to_df().to_parquet(valid_output_path)
+        ).to_df().drop(columns=["created__", "event_timestamp"]).to_parquet(
+            self.raw_training_data_path
+        )
 
         self.next(self.transform_data)
 
@@ -131,29 +150,9 @@ class DLRMModelExportFlow(FlowSpec):
         item_id = ["item_id"] >> Categorify() >> TagAsItemID()
         targets = ["click"] >> AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, "target"])
 
-        item_features = (
-            ["item_category", "item_shop", "item_brand"]
-            >> Categorify()
-            >> TagAsItemFeatures()
-        )
+        item_features = item_feature_names >> Categorify() >> TagAsItemFeatures()
 
-        user_features = (
-            [
-                "user_shops",
-                "user_profile",
-                "user_group",
-                "user_gender",
-                "user_age",
-                "user_consumption_2",
-                "user_is_occupied",
-                "user_geography",
-                "user_intentions",
-                "user_brands",
-                "user_categories",
-            ]
-            >> Categorify()
-            >> TagAsUserFeatures()
-        )
+        user_features = user_feature_names >> Categorify() >> TagAsUserFeatures()
 
         outputs = user_id + item_id + item_features + user_features + targets
 
@@ -186,8 +185,12 @@ class DLRMModelExportFlow(FlowSpec):
         )
 
         # Load train/valid data
-        train_df = Dataset(os.path.join(self.DATA_FOLDER, "train", "*.parquet"))
-        valid_df = Dataset(os.path.join(self.DATA_FOLDER, "valid", "*.parquet"))
+        train_df = Dataset(
+            inputs.fetch_historical_data_from_feast.raw_training_data_path
+        )
+        valid_df = Dataset(
+            inputs.fetch_historical_data_from_feast.raw_validation_data_path
+        )
 
         # Fit the workflow to the training data
         workflow.fit(train_df)
@@ -237,8 +240,7 @@ class DLRMModelExportFlow(FlowSpec):
         """
         Congratulations, it's done. This step will simply print the output path.
         """
-        print(f">>> DLRM model exported to {self.model_output_path}")
-        pass
+        print(f"DLRM model exported to {self.model_output_path}")
 
 
 if __name__ == "__main__":

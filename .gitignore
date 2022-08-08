@@ -2,3 +2,4 @@
 .metaflow/
 .vscode/
 feast_feature_store/data
+data_for_modeling

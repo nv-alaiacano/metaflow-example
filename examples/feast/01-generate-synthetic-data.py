@@ -27,6 +27,7 @@ class GenerateFeatureStoreData(FlowSpec):
         help="Location where we will store the synthetic data. This path will be "
         + "used later in the `feast apply` step.",
         type=str,
+        default=os.path.join(os.getcwd(), "feast_feature_store", "data"),
     )
 
     OVERWRITE_EXISTING = Parameter(
@@ -96,9 +97,10 @@ class GenerateFeatureStoreData(FlowSpec):
 
         # CONTEXT FEATURES Stored in parquet for fetching historical data later.
         # We want: user_id, item_id, any Tags.CONTEXT features, and we'll generate a fake timestamp.
+        # and of course the target: "click"
         context_cols = raw_data.schema.select_by_tag(
             tags=[Tags.USER_ID, Tags.ITEM_ID, Tags.CONTEXT]
-        ).column_names + ["datetime", "created"]
+        ).column_names + ["datetime", "created", "click"]
         context_df = raw_data_df[context_cols]
         context_df.rename(columns={"datetime": "event_timestamp"}, inplace=True)
         context_df.to_parquet(

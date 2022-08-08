@@ -206,7 +206,7 @@ class DLRMModelExportFlow(FlowSpec):
         """
         Congratulations, it's done. This step will simply print the output path.
         """
-        print(f">>> DLRM model exported to {self.model_output_path}")
+        print(f"DLRM model exported to {self.model_output_path}")
         pass
 
 

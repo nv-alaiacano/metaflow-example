@@ -161,7 +161,7 @@ class SystemWorkflow(FlowSpec):
         """
         Congratulations, it's done. This step will prent the path of the ensemble model.
         """
-        print(f">>> Ensemble generated in {self.ensemble_output_path}")
+        print(f"Ensemble generated in {self.ensemble_output_path}")
 
 
 if __name__ == "__main__":
