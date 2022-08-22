@@ -1,0 +1,2 @@
+metaflow==2.7.4
+feast==0.19.4
