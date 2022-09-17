@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: merlin-tensorflow
+spec:
+  type: service
+  system: merlin
+  lifecycle: experimental
+  owner: nv-alaiacano
+  dependsOn:
+    - component:merlin-models
+    - component:nvtabular
+    - component:merlin-systems
