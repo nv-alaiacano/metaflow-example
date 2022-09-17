@@ -1,7 +1,7 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: merlin-tensorflow
+  name: metaflow-example
 spec:
   type: service
   system: merlin
