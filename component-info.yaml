@@ -3,7 +3,7 @@ kind: Component
 metadata:
   name: metaflow-example
   annotations:
-    backstage.io/techdocs-ref: dir:docs
+    backstage.io/techdocs-ref: dir:.
 spec:
   type: service
   system: merlin
