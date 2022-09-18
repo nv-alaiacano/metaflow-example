@@ -1,0 +1,7 @@
+site_name: "metadata exmaple docs"
+
+nav:
+  - Home: index.md
+
+plugins:
+  - techdocs-core
