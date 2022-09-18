@@ -1,7 +1,7 @@
 site_name: "metadata exmaple docs"
 
 nav:
-  - Home: index.md
-
+  - Overview: index.md
+  - Running: running.md
 plugins:
   - techdocs-core
