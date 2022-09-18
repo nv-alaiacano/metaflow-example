@@ -4,6 +4,9 @@ metadata:
   name: metaflow-example
   annotations:
     backstage.io/techdocs-ref: dir:.
+  tags:
+    - recsys
+    - merlin
 spec:
   type: service
   system: merlin
@@ -12,4 +15,3 @@ spec:
   dependsOn:
     - component:merlin-models
     - component:nvtabular
-    - component:merlin-systems
