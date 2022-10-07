@@ -1,0 +1,3 @@
+[gcp]
+project: ${{ values.gcpProject }}
+serviceAccount: ${{ values.gcpServiceAccount }}

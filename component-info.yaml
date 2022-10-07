@@ -1,17 +1,17 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: metaflow-example
+  name: ${{values.name}}
   annotations:
     backstage.io/techdocs-ref: dir:.
   tags:
-    - recsys
     - merlin
 spec:
   type: service
-  system: merlin
   lifecycle: experimental
-  owner: nv-alaiacano
-  dependsOn:
-    - component:merlin-models
-    - component:nvtabular
+  owner: ${{values.owner}}
+  # TODO: Fill in your system name here.
+  # system:
+  # TODO: Fill in the components and resources that this depends on
+  # dependsOn:
+  #  - component:upstream-component
