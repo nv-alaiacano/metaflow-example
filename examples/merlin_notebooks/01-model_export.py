@@ -1,13 +1,14 @@
-import shutil
 import os
-import nvtabular as nvt
+import shutil
 from pathlib import Path
-from metaflow import FlowSpec, Parameter, step
+
+import merlin.models.tf as mm
+import nvtabular as nvt
+import tensorflow as tf
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
 from merlin.schema import Tags
-import merlin.models.tf as mm
-import tensorflow as tf
+from metaflow import FlowSpec, Parameter, step
 
 
 class DLRMModelExportFlow(FlowSpec):
@@ -15,7 +16,7 @@ class DLRMModelExportFlow(FlowSpec):
     DATA_FOLDER = Parameter(
         "data-folder",
         help="Folder where we will download/cache data and use it in later steps.",
-        default=os.path.expanduser("~/data/alicpp"),
+        default=os.path.expanduser("~/data/aliccp"),
     )
 
     NUM_ROWS = Parameter(
@@ -85,11 +86,11 @@ class DLRMModelExportFlow(FlowSpec):
             shutil.rmtree(self.nvt_workflow_definition_path)
 
         from nvtabular.ops import (
-            Categorify,
             AddMetadata,
+            Categorify,
             TagAsItemFeatures,
-            TagAsUserFeatures,
             TagAsItemID,
+            TagAsUserFeatures,
             TagAsUserID,
         )
 

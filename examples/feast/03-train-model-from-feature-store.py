@@ -1,12 +1,13 @@
-import shutil
 import os
-import nvtabular as nvt
+import shutil
 from pathlib import Path
-from metaflow import FlowSpec, Parameter, step
+
+import merlin.models.tf as mm
+import nvtabular as nvt
+import tensorflow as tf
 from merlin.io.dataset import Dataset
 from merlin.schema import Tags
-import merlin.models.tf as mm
-import tensorflow as tf
+from metaflow import FlowSpec, Parameter, step
 
 item_feature_names = ["item_category", "item_shop", "item_brand"]
 user_feature_names = [
@@ -138,11 +139,11 @@ class DLRMModelExportFlow(FlowSpec):
             shutil.rmtree(self.nvt_workflow_definition_path)
 
         from nvtabular.ops import (
-            Categorify,
             AddMetadata,
+            Categorify,
             TagAsItemFeatures,
-            TagAsUserFeatures,
             TagAsItemID,
+            TagAsUserFeatures,
             TagAsUserID,
         )
 

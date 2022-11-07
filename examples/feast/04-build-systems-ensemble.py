@@ -8,10 +8,11 @@ from merlin.systems.dag.ops.workflow import TransformWorkflow
 from metaflow import FlowSpec, Parameter, step
 from nvtabular.workflow import Workflow
 
-default_data_path = os.path.expanduser("~/data/aliccp")
+default_data_path = os.path.join(os.getcwd(), "data_for_modeling")
 
 
 class SystemWorkflow(FlowSpec):
+
     dlrm_input_path = Parameter(
         "dlrm-input-path",
         help="Folder where we will load the DLRM model from.",
@@ -72,10 +73,6 @@ class SystemWorkflow(FlowSpec):
 
         ensemble.export(self.ensemble_output_path)
         self.next(self.end)
-
-    @step
-    def add_custom_op(self):
-        pass
 
     @step
     def end(self):

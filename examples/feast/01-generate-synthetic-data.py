@@ -1,17 +1,18 @@
-import subprocess
+import datetime
 import os
 import shutil
+import subprocess
 from pathlib import Path
+
 import numpy as np
-import datetime
-from metaflow import FlowSpec, Parameter, step
-from merlin.schema import Tags
 from merlin.io.dataset import Dataset
+from merlin.schema import Tags
+from metaflow import FlowSpec, Parameter, step
 
 
 class GenerateFeatureStoreData(FlowSpec):
     """
-    Generates fake alicpp data, sets up a Feature Store, and calls apply/materialize to get
+    Generates fake aliccp data, sets up a Feature Store, and calls apply/materialize to get
     data into the store.
     """
 
@@ -38,8 +39,8 @@ class GenerateFeatureStoreData(FlowSpec):
 
     @step
     def start(self):
-        from merlin.datasets.synthetic import generate_data
         import pandas as pd
+        from merlin.datasets.synthetic import generate_data
 
         data_dir_path = Path(self.DATA_DIR)  # type:ignore
 
