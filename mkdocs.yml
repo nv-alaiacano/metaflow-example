@@ -2,6 +2,13 @@ site_name: "metadata exmaple docs"
 
 nav:
   - Overview: index.md
+  - Walking through the project:
+    - Generating Data: guide/synthetic_data.md
+    - Ingesting into Feast: guide/feast_ingest.md
+    - Feature Engineering & Model Training: guide/feature_eng_and_model_training.md
+    - Generating a Systems ensemble: guide/export_systems_ensemble.md
   - Running: running.md
 plugins:
   - techdocs-core
+markdown_extensions:
+  - footnotes
